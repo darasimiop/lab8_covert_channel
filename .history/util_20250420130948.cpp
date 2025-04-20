@@ -91,4 +91,5 @@ char* convert_from_binary(char* bitstring, int bitstring_size) {
     message[num_chars] = '\0';
     return message;
 }
+
 }

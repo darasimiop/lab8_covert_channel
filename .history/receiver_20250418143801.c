@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "util.hpp"
+
+#define BIT_DELAY 100000 // match sender
+#define THRESHOLD 150 // ns - adjust based on results
+
+char recv_bit(void *addr) {
+    uint64_t t1 = rdtscp();
+    access(addr);
+    uint64_t t2 = rdtscp();
+
+    flush(addr);
+    usleep(BIT_DELAY);
+
+    return (t2 - t1 < THRESHOLD) ? '1' : '0';
+}
+
+void recv_message(int bits, void *addr) {
+    for (int i = 0; i < bits; i++) {
+        char b = recv_bit(addr);
+        printf("%c", b);
+        fflush(stdout);
+    }
+    printf("\n");
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <number_of_bits>\n", argv[0]);
+        return 1;
+    }
+
+    int bits = atoi(argv[1]);
+    void *addr = get_shared_mem(); // defined in util.cpp
+
+    printf("Receiving %d bits...\n", bits);
+    recv_message(bits, addr);
+
+    return 0;
+}

@@ -1,10 +1,8 @@
 #include "util.hpp"
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 
-extern "C" {
-
+// Flush+Reload utilities
 CYCLES measure_one_block_access_time(ADDR_PTR addr) {
     CYCLES cycles;
     asm volatile("mov %1, %%r8\n\t"
@@ -36,44 +34,17 @@ uint64_t cache_set_index(ADDR_PTR addr) {
     return (addr & mask) >> 6;
 }
 
-void* get_shared_mem() {
-    const char* path = "/dev/shm/covert_shared";
-    int fd = open(path, O_RDWR | O_CREAT, 0666);
-    if (fd < 0) {
-        perror("open");
-        exit(1);
+char* convert_to_binary(char* input) {
+    size_t length = strlen(input);
+    char* output = (char*)malloc(length * 8 + 1);
+    output[0] = '\0';
+
+    for (int i = 0; i < length; ++i) {
+        for (int j = 7; j >= 0; --j) {
+            strcat(output, (input[i] & (1 << j)) ? "1" : "0");
+        }
     }
-
-    if (ftruncate(fd, CACHE_LINESIZE) != 0) {
-        perror("ftruncate");
-        close(fd);
-        exit(1);
-    }
-
-    void* addr = mmap(NULL, CACHE_LINESIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (addr == MAP_FAILED) {
-        perror("mmap");
-        close(fd);
-        exit(1);
-    }
-
-    close(fd);
-    return addr;
-}
-
-void cache_access(void* addr) {
-    volatile uint8_t* p = (volatile uint8_t*)addr;
-    *p;
-}
-
-void flush(void* addr) {
-    asm volatile("clflush 0(%0)\n" : : "r"(addr) : "memory");
-}
-
-uint64_t rdtscp() {
-    uint32_t lo, hi;
-    asm volatile ("rdtscp" : "=a"(lo), "=d"(hi) : : "rcx");
-    return ((uint64_t)hi << 32) | lo;
+    return output;
 }
 
 char* convert_from_binary(char* bitstring, int bitstring_size) {
@@ -87,8 +58,39 @@ char* convert_from_binary(char* bitstring, int bitstring_size) {
         message[i] = strtol(eight_bits, NULL, 2);
         idx += 8;
     }
-
     message[num_chars] = '\0';
     return message;
 }
+
+// Lab 8 helpers
+void* get_shared_mem() {
+    const char* path = "/dev/shm/covert_shared";
+    int fd = open(path, O_RDWR | O_CREAT, 0666);
+    if (fd < 0) {
+        perror("open");
+        exit(1);
+    }
+    ftruncate(fd, CACHE_LINESIZE);
+    void* addr = mmap(NULL, CACHE_LINESIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (addr == MAP_FAILED) {
+        perror("mmap");
+        exit(1);
+    }
+    close(fd);
+    return addr;
+}
+
+void access(void* addr) {
+    volatile uint8_t* p = (volatile uint8_t*)addr;
+    *p;
+}
+
+void flush(void* addr) {
+    asm volatile("clflush 0(%0)\n" : : "r"(addr) : "memory");
+}
+
+uint64_t rdtscp() {
+    uint32_t lo, hi;
+    asm volatile ("rdtscp" : "=a"(lo), "=d"(hi) : : "rcx");
+    return ((uint64_t)hi << 32) | lo;
 }

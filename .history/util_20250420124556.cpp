@@ -61,7 +61,7 @@ void* get_shared_mem() {
     return addr;
 }
 
-void cache_access(void* addr) {
+void access(void* addr) {
     volatile uint8_t* p = (volatile uint8_t*)addr;
     *p;
 }
@@ -76,19 +76,4 @@ uint64_t rdtscp() {
     return ((uint64_t)hi << 32) | lo;
 }
 
-char* convert_from_binary(char* bitstring, int bitstring_size) {
-    int num_chars = bitstring_size / 8;
-    char* message = (char*)malloc(num_chars + 1);
-    int idx = 0;
-
-    for (int i = 0; i < num_chars; i++) {
-        char eight_bits[9] = {0};
-        strncpy(eight_bits, &bitstring[idx], 8);
-        message[i] = strtol(eight_bits, NULL, 2);
-        idx += 8;
-    }
-
-    message[num_chars] = '\0';
-    return message;
-}
 }

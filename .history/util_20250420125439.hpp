@@ -15,6 +15,13 @@ using namespace std;
 
 #define ADDR_PTR uint64_t 
 #define CYCLES uint32_t
+
+#define PERIOD 500
+#define DECISION_BOUNDARY 150
+#define TWO 2
+#define MULTIPLIER 2
+#define MESSAGE_MAX 128
+#define BYTE_BIT 8
 #define CACHE_LINESIZE 64
 
 extern "C" {
@@ -26,7 +33,6 @@ extern "C" {
     void cache_access(void* addr);
     void flush(void* addr);
     uint64_t rdtscp();
-    char* convert_from_binary(char* bitstring, int bitstring_size);
 }
 
 #endif
